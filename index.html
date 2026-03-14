@@ -181,7 +181,7 @@ body{font-family:var(--font);background:var(--light-bg);color:var(--text);}
 .time-cell:hover{background:#e8ecf4;}
 .time-cell small{display:block;font-weight:400;font-size:8px;color:var(--gray);margin-top:1px;}
 .time-input{font-family:var(--font);font-size:9px;font-weight:700;color:var(--ymca-navy);border:none;background:transparent;text-align:right;width:100%;outline:none;border-bottom:1.5px solid var(--ymca-red);}
-.day-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px;min-height:60px;display:flex;flex-direction:column;gap:2px;position:relative;}
+.day-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px;min-height:60px;height:auto;display:flex;flex-direction:column;gap:2px;position:relative;}
 
 /* ══════════════════ CLASS CARD ══════════════════ */
 .cc{border-radius:3px;padding:4px 5px 4px 7px;flex:1;display:flex;flex-direction:column;gap:1px;position:relative;transition:box-shadow .12s;}
@@ -189,13 +189,14 @@ body{font-family:var(--font);background:var(--light-bg);color:var(--text);}
 .cc:hover .cc-delete,.cc:hover .cc-type-badge{opacity:1;}
 .cc-delete{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:rgba(232,17,45,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--ymca-red);opacity:0;transition:opacity .15s;line-height:1;padding:0;}
 .cc-delete:hover{background:var(--ymca-red);color:white;}
-.cc-field{border:none;background:transparent;font-family:var(--font);width:100%;outline:none;cursor:pointer;border-radius:2px;padding:0;}
+.cc-field{border:none;background:transparent;font-family:var(--font);width:100%;outline:none;cursor:pointer;border-radius:2px;padding:0;display:block;white-space:normal;word-break:break-word;overflow-wrap:break-word;line-height:1.3;}
 .cc-field:hover{background:rgba(0,0,0,.06);}
-.cc-field:focus{background:rgba(255,255,255,.8);border-bottom:1.5px solid var(--ymca-red);cursor:text;}
-.cc-name-f{font-weight:700;font-size:9.5px;letter-spacing:.01em;text-transform:uppercase;line-height:1.2;}
-.cc-instr-f{font-size:8px;color:#444;font-weight:400;line-height:1.2;}
+.cc-field:focus{background:rgba(255,255,255,.8);border-bottom:1.5px solid var(--ymca-red);cursor:text;outline:none;}
+.cc-field[contenteditable=true]{cursor:text;}
+.cc-name-f{font-weight:700;font-size:7.5px;letter-spacing:.01em;text-transform:uppercase;line-height:1.3;white-space:normal;word-break:break-word;overflow-wrap:break-word;}
+.cc-instr-f{font-size:7px;color:#444;font-weight:400;line-height:1.3;white-space:normal;word-break:break-word;}
 .cc-instr-f.sub-style{font-style:italic;}
-.cc-room-f{font-size:7.5px;color:var(--gray);font-weight:400;letter-spacing:.03em;text-transform:uppercase;}
+.cc-room-f{font-size:6.5px;color:var(--gray);font-weight:400;letter-spacing:.02em;text-transform:uppercase;white-space:normal;word-break:break-word;}
 .cc-type-badge{position:absolute;bottom:3px;right:3px;width:10px;height:10px;border-radius:50%;cursor:pointer;border:1.5px solid rgba(255,255,255,.6);opacity:0;transition:opacity .15s;}
 .empty-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:60px;background:white;}
 
@@ -224,6 +225,11 @@ body{font-family:var(--font);background:var(--light-bg);color:var(--text);}
 .modal-confirm{background:var(--ymca-red);color:white;}
 .modal-confirm:hover{background:#c50e26;}
 .modal-navy{background:var(--ymca-navy);color:white;}
+.modal-navy:hover{background:#002558;}
+.confirm-day{background:var(--light-bg);border-radius:6px;padding:8px;text-align:center;}
+.confirm-day .cd-name{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:4px;}
+.confirm-day .cd-count{font-size:22px;font-weight:700;color:var(--ymca-navy);}
+.confirm-day .cd-count.zero{color:var(--border);}
 .modal-navy:hover{background:#002558;}
 
 /* print steps list */
@@ -274,6 +280,20 @@ body{font-family:var(--font);background:var(--light-bg);color:var(--text);}
     <div class="modal-actions">
       <button class="modal-btn modal-cancel" onclick="closeModal('modal-print')">Go Back</button>
       <button class="modal-btn modal-navy" id="do-print-btn">Got It — Open Print Preview</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF CONFIRMATION MODAL -->
+<div class="overlay" id="modal-confirm">
+  <div class="modal" style="max-width:480px;">
+    <h3>✓ Schedule Extracted</h3>
+    <p>Review the class counts below. If a day looks wrong (too many or too few), click <strong>Go Back</strong> and try again or upload a corrected PDF.</p>
+    <div id="confirm-counts" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;"></div>
+    <p style="font-size:11px;color:var(--gray);margin-bottom:20px;">💡 <em>Tip: If the PDF has two pages, check that Wednesday–Sunday classes aren't shifted to the wrong day.</em></p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="rejectConfirm()">↩ Go Back</button>
+      <button class="modal-btn modal-navy" onclick="acceptConfirm()">Looks Good — Load Schedule</button>
     </div>
   </div>
 </div>
@@ -488,6 +508,7 @@ body{font-family:var(--font);background:var(--light-bg);color:var(--text);}
 //  STATE
 // ═══════════════════════════════════════════
 let scheduleData = [];
+let pendingScheduleData = null;
 let undoStack    = [];
 const DAYS = ["mon","tue","wed","thu","fri","sat","sun"];
 const MAX_UNDO = 30;
@@ -615,16 +636,19 @@ function buildGrid(gridId, rows) {
   });
 }
 
-function makeCard(c, rowId, day, ci) {
+function makeCard(c, rowId, day, ci, row_timeB) {
   const t = CLASS_TYPES[c.type]||CLASS_TYPES.cardio;
   const card = document.createElement("div");
   card.className=`cc ${c.type}`; card.dataset.type=c.type; card.dataset.rowId=rowId; card.dataset.day=day; card.dataset.ci=ci;
   card.style.background=t.bg; card.style.borderLeft=`3px solid ${t.color}`;
   const dName = formatInstructor(c.instructor);
+  // Show end time on room field if this class ends at a different time than the row
+  const timeNote = (c.timeB && row_timeB && c.timeB !== row_timeB) ? `ends ${c.timeB} · ` : "";
+  const roomDisplay = timeNote + (c.room||"");
   card.innerHTML=`
-    <input class="cc-field cc-name-f ${c.type}" style="color:${t.color}" value="${esc(c.name)}" title="Edit class name" onchange="editCardField(this,'name')">
-    <input class="cc-field cc-instr-f${c.sub?' sub-style':''}" value="${esc(dName)}" title="Edit instructor" onchange="editCardField(this,'instructor')">
-    <input class="cc-field cc-room-f" value="${esc(c.room||'')}" title="Edit room" onchange="editCardField(this,'room')">
+    <div class="cc-field cc-name-f ${c.type}" style="color:${t.color}" contenteditable="true" title="Click to edit class name" onblur="editCardFieldDiv(this,'name')">${esc(c.name)}</div>
+    <div class="cc-field cc-instr-f${c.sub?' sub-style':''}" contenteditable="true" title="Click to edit instructor" onblur="editCardFieldDiv(this,'instructor')">${esc(dName)}</div>
+    <div class="cc-field cc-room-f" contenteditable="true" title="Click to edit room" onblur="editCardFieldDiv(this,'room')">${esc(roomDisplay)}</div>
     <button class="cc-delete" title="Remove this class" onclick="deleteCard(this)">✕</button>
     <div class="cc-type-badge" style="background:${t.color}" title="Change class type" onclick="openTypePicker(this)"></div>`;
   return card;
@@ -634,6 +658,15 @@ function esc(s){ return (s||"").replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 // ═══════════════════════════════════════════
 //  INLINE EDITING
 // ═══════════════════════════════════════════
+function editCardFieldDiv(div, field) {
+  pushUndo();
+  const card=div.closest(".cc"), rowId=card.dataset.rowId, day=card.dataset.day, ci=parseInt(card.dataset.ci);
+  const row=scheduleData.find(r=>r._id===rowId); if(!row) return;
+  const items=Array.isArray(row[day])?row[day]:[row[day]];
+  if(items[ci]) items[ci][field]=div.textContent.trim();
+  if(!Array.isArray(row[day])) row[day]=items[0];
+}
+
 function editCardField(input, field) {
   pushUndo();
   const card=input.closest(".cc"), rowId=card.dataset.rowId, day=card.dataset.day, ci=parseInt(card.dataset.ci);
@@ -714,21 +747,57 @@ function formatInstructor(name){
   return isSub?`* ${result}`:result;
 }
 function applyNameFormat(){
-  document.querySelectorAll(".cc-instr-f").forEach(input=>{
-    const card=input.closest(".cc"); if(!card) return;
+  document.querySelectorAll(".cc-instr-f").forEach(el=>{
+    const card=el.closest(".cc"); if(!card) return;
     const row=scheduleData.find(r=>r._id===card.dataset.rowId); if(!row) return;
     const items=Array.isArray(row[card.dataset.day])?row[card.dataset.day]:[row[card.dataset.day]];
-    const c=items[parseInt(card.dataset.ci)]; if(c) input.value=formatInstructor(c.instructor);
+    const c=items[parseInt(card.dataset.ci)];
+    if(c){
+      const fmt=formatInstructor(c.instructor);
+      if(el.tagName==="INPUT") el.value=fmt; else el.textContent=fmt;
+    }
   });
 }
 
 // ═══════════════════════════════════════════
 //  REBUILD
 // ═══════════════════════════════════════════
+function mergeRows(rows) {
+  // Group rows by startH — combine classes from same start hour into one row
+  const merged = {};
+  const order = [];
+  rows.forEach(row => {
+    const key = row.startH;
+    if (!merged[key]) {
+      merged[key] = { ...row };
+      order.push(key);
+    } else {
+      // Merge each day — combine into arrays
+      DAYS.forEach(day => {
+        if (!row[day]) return;
+        const existing = merged[key][day];
+        const incoming = row[day];
+        if (!existing) {
+          merged[key][day] = incoming;
+        } else {
+          const exArr = Array.isArray(existing) ? existing : [existing];
+          const inArr = Array.isArray(incoming) ? incoming : [incoming];
+          merged[key][day] = [...exArr, ...inArr];
+        }
+      });
+      // Use the shorter timeB for the display (or keep longest)
+      // Keep timeA as-is, pick widest timeB
+    }
+  });
+  return order.map(k => merged[k]);
+}
+
 function rebuildGrids(){
   const split=parseInt(document.getElementById("split-hour").value,10);
-  buildGrid("grid-am",scheduleData.filter(r=>r.startH< split));
-  buildGrid("grid-pm",scheduleData.filter(r=>r.startH>=split));
+  const am = mergeRows(scheduleData.filter(r=>r.startH< split));
+  const pm = mergeRows(scheduleData.filter(r=>r.startH>=split));
+  buildGrid("grid-am", am);
+  buildGrid("grid-pm", pm);
   refreshLegends();
 }
 
@@ -828,89 +897,4 @@ Rules:
         system:SYSTEM,
         messages:[{role:"user",content:[
           {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
-          {type:"text",text:"Extract every class from this YMCA schedule PDF into the JSON format. Include all days and all time slots."}
-        ]}]
-      })
-    });
-    if(!resp.ok){ const err=await resp.json(); throw new Error(err.error?.message||`API error ${resp.status}`); }
-    const data=await resp.json();
-    const raw=data.content.find(b=>b.type==="text")?.text||"";
-    const clean=raw.replace(/```json|```/gi,"").trim();
-    const parsed=JSON.parse(clean);
-    if(!Array.isArray(parsed)||!parsed.length) throw new Error("No schedule data found in PDF.");
-    pushUndo();
-    scheduleData=parsed;
-    rebuildGrids();
-    pdfStatus.textContent=`✓ ${parsed.length} time slots loaded`;
-    pdfStatus.style.color="#008542";
-    pdfBtn.classList.remove("loading");
-    showStatus("success",`✓ Loaded ${parsed.length} time slots from "${file.name}"`);
-    setTimeout(clearStatus,5000);
-  }catch(err){
-    console.error(err);
-    pdfStatus.textContent=`Error: ${err.message}`;
-    pdfStatus.style.color="var(--ymca-red)";
-    pdfBtn.classList.remove("loading");
-    showStatus("error",`Error: ${err.message}`);
-    setTimeout(clearStatus,8000);
-  }
-}
-
-// ═══════════════════════════════════════════
-//  RESET
-// ═══════════════════════════════════════════
-function confirmReset(){
-  scheduleData=[]; undoStack=[];
-  rebuildGrids();
-  ["tb-center","tb-year","tb-range"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("tb-month").value="";
-  document.getElementById("footer-text").value="";
-  document.getElementById("url-text").value="ymcacharlotte.org";
-  document.getElementById("split-hour").value="12";
-  document.getElementById("name-format").value="full";
-  document.getElementById("pdf-status").textContent="";
-  syncHeaders();
-  syncFooter("");
-  syncURL("ymcacharlotte.org");
-  closeModal("modal-reset");
-}
-
-// ═══════════════════════════════════════════
-//  MODAL HELPERS
-// ═══════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add("open"); }
-function closeModal(id){ document.getElementById(id).classList.remove("open"); }
-
-// ═══════════════════════════════════════════
-//  STATUS BAR
-// ═══════════════════════════════════════════
-function showStatus(type,msg){
-  let bar=document.getElementById("status-bar");
-  if(!bar){bar=document.createElement("div");bar.id="status-bar";document.body.appendChild(bar);}
-  const cols={reading:"#003A70",loading:"#003A70",success:"#008542",error:"#E8112D"};
-  bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:400;padding:10px 22px;font-family:var(--font);font-size:12px;font-weight:600;display:flex;align-items:center;gap:10px;background:${cols[type]||cols.loading};color:white;transition:background .3s;`;
-  const spin=(type==="loading"||type==="reading")?`<span class="spinner"></span>`:"";
-  bar.innerHTML=spin+`<span>${msg}</span>`;
-}
-function clearStatus(){ const b=document.getElementById("status-bar"); if(b) b.remove(); }
-
-// ═══════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════
-buildTypeEditor();
-refreshLegends();
-rebuildGrids();
-
-// Wire print button directly so window.print() fires within user gesture
-(function() {
-  var printBtn = document.getElementById('do-print-btn');
-  if (printBtn) {
-    printBtn.addEventListener('click', function() {
-      closeModal('modal-print');
-      window.print();
-    });
-  }
-})();
-</script>
-</body>
-</html>
+          {type:"text",text:"Extract every class from
