@@ -897,4 +897,129 @@ Rules:
         system:SYSTEM,
         messages:[{role:"user",content:[
           {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
-          {type:"text",text:"Extract every class from
+          {type:"text",text:"Extract every class from this YMCA schedule PDF into the JSON format. Include all days and all time slots."}
+        ]}]
+      })
+    });
+    if(!resp.ok){ const err=await resp.json(); throw new Error(err.error?.message||`API error ${resp.status}`); }
+    const data=await resp.json();
+    const raw=data.content.find(b=>b.type==="text")?.text||"";
+    const clean=raw.replace(/```json|```/gi,"").trim();
+    const parsed=JSON.parse(clean);
+    if(!Array.isArray(parsed)||!parsed.length) throw new Error("No schedule data found in PDF.");
+    pdfBtn.classList.remove("loading");
+    pdfStatus.textContent = `✓ Extracted ${parsed.length} time slots — review below`;
+    pdfStatus.style.color = "#003A70";
+    clearStatus();
+    showConfirmModal(parsed);
+  }catch(err){
+    console.error(err);
+    pdfStatus.textContent=`Error: ${err.message}`;
+    pdfStatus.style.color="var(--ymca-red)";
+    pdfBtn.classList.remove("loading");
+    showStatus("error",`Error: ${err.message}`);
+    setTimeout(clearStatus,8000);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════
+function confirmReset(){
+  scheduleData=[]; undoStack=[];
+  rebuildGrids();
+  ["tb-center","tb-year","tb-range"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("tb-month").value="";
+  document.getElementById("footer-text").value="";
+  document.getElementById("url-text").value="ymcacharlotte.org";
+  document.getElementById("split-hour").value="12";
+  document.getElementById("name-format").value="full";
+  document.getElementById("pdf-status").textContent="";
+  syncHeaders();
+  syncFooter("");
+  syncURL("ymcacharlotte.org");
+  closeModal("modal-reset");
+}
+
+// ═══════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+
+function showConfirmModal(parsed) {
+  pendingScheduleData = parsed;
+  const DAY_KEYS   = ["mon","tue","wed","thu","fri","sat","sun"];
+  const DAY_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const counts = document.getElementById("confirm-counts");
+  counts.innerHTML = "";
+  DAY_KEYS.forEach((day, i) => {
+    let total = 0;
+    parsed.forEach(row => {
+      const cls = row[day];
+      if (!cls) return;
+      total += Array.isArray(cls) ? cls.length : 1;
+    });
+    const div = document.createElement("div");
+    div.className = "confirm-day";
+    div.innerHTML = `<div class="cd-name">${DAY_LABELS[i]}</div><div class="cd-count${total===0?' zero':''}">${total}</div>`;
+    counts.appendChild(div);
+  });
+  openModal("modal-confirm");
+}
+
+function acceptConfirm() {
+  if (!pendingScheduleData) return;
+  pushUndo();
+  scheduleData = pendingScheduleData;
+  pendingScheduleData = null;
+  rebuildGrids();
+  closeModal("modal-confirm");
+  const s = document.getElementById("pdf-status");
+  if (s) { s.textContent = `✓ ${scheduleData.length} time slots loaded`; s.style.color="#008542"; }
+  showStatus("success", `✓ Schedule loaded — ${scheduleData.length} time slots`);
+  setTimeout(clearStatus, 5000);
+}
+
+function rejectConfirm() {
+  pendingScheduleData = null;
+  closeModal("modal-confirm");
+  const s = document.getElementById("pdf-status");
+  if (s) s.textContent = "";
+  showStatus("error", "Upload cancelled — please try again");
+  setTimeout(clearStatus, 4000);
+}
+
+// ═══════════════════════════════════════════
+//  STATUS BAR
+// ═══════════════════════════════════════════
+function showStatus(type,msg){
+  let bar=document.getElementById("status-bar");
+  if(!bar){bar=document.createElement("div");bar.id="status-bar";document.body.appendChild(bar);}
+  const cols={reading:"#003A70",loading:"#003A70",success:"#008542",error:"#E8112D"};
+  bar.style.cssText=`position:fixed;bottom:0;left:0;right:0;z-index:400;padding:10px 22px;font-family:var(--font);font-size:12px;font-weight:600;display:flex;align-items:center;gap:10px;background:${cols[type]||cols.loading};color:white;transition:background .3s;`;
+  const spin=(type==="loading"||type==="reading")?`<span class="spinner"></span>`:"";
+  bar.innerHTML=spin+`<span>${msg}</span>`;
+}
+function clearStatus(){ const b=document.getElementById("status-bar"); if(b) b.remove(); }
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+buildTypeEditor();
+refreshLegends();
+rebuildGrids();
+
+// Wire print button directly so window.print() fires within user gesture
+(function() {
+  var printBtn = document.getElementById('do-print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', function() {
+      closeModal('modal-print');
+      window.print();
+    });
+  }
+})();
+</script>
+</body>
+</html>
