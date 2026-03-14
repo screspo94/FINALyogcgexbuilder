@@ -819,12 +819,12 @@ Rules:
 - Use exact class names and instructor names from the PDF`;
 
   try{
-    const resp=await fetch("/api/claude",{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
-        max_tokens:4000,
+        max_tokens:8000,
         system:SYSTEM,
         messages:[{role:"user",content:[
           {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
